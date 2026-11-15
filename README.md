@@ -27,11 +27,6 @@ Built for the 2026 NASA Space Apps Challenge **"CLPS Lunar Mission Browser"** by
 
 ![Clearway Simple mode](docs/screenshot-simple.png)
 
-*Interface preview (rendered with the test dataset; your build shows the NASA data). More: [Planner board](docs/screenshot.png), [horizon view and landing safety](docs/screenshot-horizon.png), [south-pole map](docs/screenshot-map.png), [data sources](docs/screenshot-sources.png).*
-
-### Edit the founder page without coding
-Open `web/about/about.md` in Notepad, change the text and save, then refresh the browser. Put a photo named
-`photo.jpg` in the same folder to show it. The format is explained at the top of the file.
 
 > Planning aid. It does not replace mission design, navigation or flight dynamics analysis.
 
