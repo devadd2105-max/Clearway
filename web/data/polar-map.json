@@ -1,0 +1,25 @@
+{
+ "size": 900,
+ "edgeLat": -79.5,
+ "rhoMaxM": 319289.2661276291,
+ "pixelM": 709.5317025058424,
+ "radiusM": 1737400.0,
+ "projection": "south polar stereographic, 0\u00b0 longitude up, 90\u00b0E right (seen from below)",
+ "layers": {
+  "terrain": {
+   "file": "polar-terrain.png",
+   "label": "Terrain (LOLA elevation, shaded)"
+  },
+  "sun": {
+   "file": "polar-sun.png",
+   "label": "Average sunlight (Mazarico et al. 2011)",
+   "source": "AVGVISIB_75S_120M_201608.IMG"
+  },
+  "psr": {
+   "file": "polar-psr.png",
+   "label": "Permanent shadow (Mazarico et al. 2011)",
+   "source": "LPSR_75S_120M_201608.IMG"
+  }
+ },
+ "generated": "2026-10-31T03:27:51Z"
+}

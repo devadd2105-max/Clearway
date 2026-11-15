@@ -1,0 +1,49 @@
+CLEARWAY 6.0 ("Clearway 9") - START HERE (Windows)
+================================================
+
+1. Unzip this file into a NEW folder (do not unzip over an older version).
+   Open the inner "clearway" folder: you should see run, server, START-HERE, and folders docs, tests, tools, web.
+
+2. Copy the "data" folder from your previous build (e.g. Desktop\clearway (6)\clearway\data)
+   into this clearway folder, next to "run". It holds the NASA downloads, so nothing is downloaded again.
+
+3. Double-click "run" (Windows Batch File). If Windows says "Windows protected your PC": More info -> Run anyway.
+   With the data folder copied, the build skips the downloads and takes about 5-10 minutes.
+   Do not close the black window. If it stops with an error: open Command Prompt here and type
+     py server.py --build-terrain --hires
+
+   IMPORTANT: this version needs a fresh terrain build. After copying the data folder, delete the file
+   clearway\web\data\horizons.json (if it is there) before double-clicking "run".
+   New downloads this time (once): the LOLA 60 S map (about 120 MB) and NASA's 65 S illumination maps,
+   so the Chandrayaan-3 site gets real terrain.
+
+   OPTIONAL (large, slow): NASA's newest shape-from-shading terrain of the 13 Artemis III regions.
+   Open Command Prompt in this folder and type
+     py server.py --build-terrain --hires --sfs
+   It pulls only the elevation file out of each region's archive on Zenodo. If a region fails, the build
+   carries on without it.
+
+4. Photograph the black window when it says "Done". Look for:
+     "documented projection"   "5 m tile ... correlation"   "SiteXX site point: ..."
+     "ldem_60s_240m"   "ch3  height ... 240 m map"   (and with --sfs: "5 m SfS map A3-...")
+     and any line with POOR AGREEMENT, not downloaded, WARNING or "landmarks not matched".
+
+5. The app opens in your browser in SIMPLE mode. Pick a lander, press "Find my landing site".
+   Then click "See the full analysis" for the Planner board, and "About" for the founder page and data sources.
+   Try a historical analysis: set the earliest landing date to 20 Aug 2023. Then About -> Chandrayaan-3.
+   Check the header chips:
+     Verified vs JPL | Tests .../... passed | Terrain LOLA + 5 m | NASA maps: illumination + 6 x 5 m
+
+6. Screenshot: card 6 "Survival under uncertainty", the cross-check table in card 7,
+   and "Verification" after clicking "Check this site live against JPL Horizons".
+
+7. Keep these build outputs from clearway\web\data\ with your screenshots:
+     validation.json, horizons.json, polar-map.json, polar-terrain.png, polar-sun.png, polar-psr.png
+
+Later starts: double-click "run". To rebuild: delete web\data\horizons.json, then double-click "run".
+
+Edit the founder page: open clearway\web\about\about.md in Notepad, change it, save, refresh the browser.
+Add your photo: save it as clearway\web\about\photo.jpg
+Edit your Chandrayaan-3 analysis: open clearway\web\about\chandrayaan.md in Notepad.
+KEEP YOUR OWN about.md AND photo.jpg: copy them from your old clearway\web\about folder into the new one.
+After installing an update: double-click "check" (re-runs the automated checks, then starts the app).

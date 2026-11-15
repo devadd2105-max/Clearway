@@ -1,0 +1,12 @@
+# One-click hosting on Render (free web service): New > Blueprint > point at this repo.
+services:
+  - type: web
+    name: clearway
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: OPENSKY_CLIENT_ID
+        sync: false
+      - key: OPENSKY_CLIENT_SECRET
+        sync: false

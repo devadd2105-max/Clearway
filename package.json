@@ -1,0 +1,14 @@
+{
+  "name": "clearway",
+  "version": "6.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Lunar Mission Browser: compare south-pole landing sites by sunlight, power and Earth link (NASA Space Apps 2026)",
+  "scripts": {
+    "start": "python3 server.py --open",
+    "test": "node --test tests/core.test.mjs tests/lunar.test.mjs tests/v4.test.mjs tests/v5.test.mjs tests/v6.test.mjs && python3 -m unittest discover -s tests",
+    "terrain": "python3 server.py --build-terrain --hires"
+  },
+  "author": "Balamurugan Devadarshan (DD Engineering)",
+  "license": "MIT"
+}

@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Clearway Lunar Mission Browser</title>
+<meta name="description" content="Which landing site gives a lunar lander the best chance of surviving its surface mission while keeping contact with Earth? Compare sites and dates by Sun and Earth over the local horizon.">
+<link rel="icon" type="image/png" sizes="64x64" href="brand/favicon-64.png">
+<link rel="apple-touch-icon" href="brand/apple-touch-icon.png">
+<meta name="theme-color" content="#000000">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="css/app.css">
+<link rel="stylesheet" href="css/lunar.css">
+</head>
+<body>
+<div class="lapp">
+  <header class="topbar">
+    <div class="brand">
+      <button class="icon-btn drawer-btn" type="button" id="drawer-btn" aria-label="Show controls" aria-expanded="false" aria-controls="panel">
+        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" stroke-width="1.6"/></svg>
+      </button>
+      <img class="brand-logo" src="brand/logo-256.png" width="38" height="38" alt="">
+      <span class="brand-name">Clearway</span>
+      <span class="brand-sub">Lunar Mission Browser</span>
+    </div>
+    <div class="status">
+      <button class="chip mono-chip" type="button" id="chip-eph" data-state="busy" title="Sun and Earth positions are checked against NASA JPL Horizons">Ephemeris</button>
+      <button class="chip" type="button" id="chip-tests" data-state="busy" title="Automated test suite">Tests</button>
+      <span class="chip" id="chip-terrain" data-state="busy" title="Source of the local horizon">Terrain</span>
+      <button class="chip hide-sm" type="button" id="chip-pgda" data-state="busy" title="NASA PGDA illumination maps and 5 m site maps">NASA maps</button>
+      <span class="chip hide-sm" id="chip-sw" title="Geomagnetic activity (NOAA SWPC)">Space weather —</span>
+      <div class="seg mode" role="radiogroup" aria-label="View mode">
+        <label title="Answer a few questions about your lander and get one answer"><input type="radio" name="vmode" value="simple"><span>Simple</span></label>
+        <label title="Numbers and tables for mission planners"><input type="radio" name="vmode" value="planner" checked><span>Planner</span></label>
+        <label title="Plain-language explanations for educators and the public"><input type="radio" name="vmode" value="explain"><span>Explain</span></label>
+      </div>
+      <button class="btn small hide-simple" type="button" id="tour-btn">Guided tour</button>
+      <button class="btn small ghost hide-simple" type="button" id="game-btn">Landing Director</button>
+      <button class="btn small ghost" type="button" id="lineage-btn">About</button>
+      <label class="switch hide-sm hide-simple" title="Show launch, transfer and lunar-orbit phases"><input type="checkbox" id="adv-toggle"><span>Mission phases</span></label>
+      <span class="clock mono hide-sm" id="utc-clock">--:--:--Z</span>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="Switch between black and white backgrounds" title="Invert (black ↔ white)">
+        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 1.5a6.5 6.5 0 0 1 0 13z" fill="currentColor"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <nav class="phasebar adv-only" id="phasebar" aria-label="Mission phases"></nav>
+
+  <section class="simple" id="simple" aria-labelledby="s-title">
+    <div class="s-hero">
+      <img class="s-logo" src="brand/logo-256.png" width="96" height="96" alt="Clearway logo">
+      <div>
+        <span class="eyebrow">Lunar landing site finder · NASA data</span>
+        <h1 id="s-title">Where should your lander touch down on the Moon?</h1>
+        <p>Tell Clearway about your lander. It checks every candidate site near the lunar south pole against NASA terrain and sunlight maps, simulates the whole stay hour by hour, then replays your landing 200 times with things going wrong.</p>
+      </div>
+    </div>
+
+    <div class="s-grid">
+      <form class="s-form card" id="s-form" autocomplete="off">
+        <div class="s-step"><span class="s-num">1</span><h2>Your lander</h2></div>
+        <div class="s-presets" role="radiogroup" aria-label="Lander">
+          <label class="s-preset"><input type="radio" name="s-preset" value="small" checked><span><b>Small lander</b><small>2 m² panels · 2 kWh battery · 200 W</small></span></label>
+          <label class="s-preset"><input type="radio" name="s-preset" value="medium"><span><b>Medium lander</b><small>4 m² panels · 6 kWh battery · 400 W</small></span></label>
+          <label class="s-preset"><input type="radio" name="s-preset" value="rover"><span><b>Small rover</b><small>1 m² panels · 1 kWh battery · 100 W</small></span></label>
+          <label class="s-preset"><input type="radio" name="s-preset" value="custom"><span><b>My own numbers</b><small>Enter your lander's specs</small></span></label>
+        </div>
+        <div class="s-custom" id="s-custom" hidden>
+          <label class="field"><span>Solar panel area <span class="unit">m²</span></span><input type="number" id="s-area" min="0.1" step="any" value="2"></label>
+          <label class="field"><span>Panel efficiency <span class="unit">%</span></span><input type="number" id="s-eff" min="1" max="45" step="any" value="28"></label>
+          <label class="field"><span>Battery <span class="unit">Wh</span></span><input type="number" id="s-bat" min="50" step="any" value="2000"></label>
+          <label class="field"><span>Power use in sunlight <span class="unit">W</span></span><input type="number" id="s-load" min="0" step="any" value="200"></label>
+          <label class="field"><span>Keep-alive electronics at night <span class="unit">W</span></span><input type="number" id="s-elec" min="0" step="any" value="45"></label>
+        </div>
+        <p class="hint">Examples are illustrative round numbers, not any real spacecraft's specs. Heaters are simulated for you.</p>
+
+        <div class="s-step"><span class="s-num">2</span><h2>Your mission</h2></div>
+        <label class="field"><span>Earliest landing date <span class="unit">UTC</span></span><input type="date" id="s-start"></label>
+        <p class="hint">Pick a past date (for example 23 Aug 2023, Chandrayaan-3) to analyse a landing that already happened.</p>
+        <label class="field"><span>Days on the surface: <b id="s-days-out">14</b></span><input type="range" id="s-days" min="1" max="60" value="14"></label>
+        <p class="hint">One lunar day (sunrise to sunrise) lasts about 29.5 Earth days.</p>
+
+        <div class="s-step"><span class="s-num">3</span><h2>What matters most?</h2></div>
+        <div class="s-prio" role="radiogroup" aria-label="Priority">
+          <label><input type="radio" name="s-prio" value="power"><span><b>More power</b><small>Sunlight first</small></span></label>
+          <label><input type="radio" name="s-prio" value="balanced" checked><span><b>Balanced</b><small>Both equally</small></span></label>
+          <label><input type="radio" name="s-prio" value="comms"><span><b>More contact</b><small>Talk to Earth</small></span></label>
+        </div>
+        <button class="btn primary s-go" type="submit" id="s-go">Find my landing site <span aria-hidden="true">→</span></button>
+      </form>
+
+      <div class="s-out" id="s-out" aria-live="polite">
+        <div class="s-idle card" id="s-idle">
+          <span class="eyebrow">How it works</span>
+          <ol class="s-how">
+            <li><div><b>Sun &amp; Earth, every hour.</b> Positions checked against NASA JPL Horizons.</div></li>
+            <li><div><b>Real terrain.</b> NASA laser-altimeter maps give each site's skyline — ridges block the Sun and Earth.</div></li>
+            <li><div><b>Power &amp; heat.</b> Panels, battery and heaters are simulated through every dark spell.</div></li>
+            <li><div><b>Things go wrong.</b> 200 replays with a late landing, a spot 100 m off target, weaker panels and an aged battery.</div></li>
+          </ol>
+          <p class="hint" id="s-data-line"></p>
+        </div>
+        <div class="s-progress card" id="s-progress" hidden>
+          <span class="eyebrow">Working on it</span>
+          <ol class="s-steps" id="s-steps"></ol>
+        </div>
+        <article class="s-answer card" id="s-answer" hidden></article>
+      </div>
+    </div>
+  </section>
+
+  <main class="llayout">
+    <div class="backdrop" id="backdrop" hidden></div>
+    <aside class="panel" id="panel" aria-label="Controls">
+      <nav class="tabs" role="tablist" aria-label="Controls">
+        <button class="tab" role="tab" id="t-sites" aria-controls="tab-sites" aria-selected="true">Plan</button>
+        <button class="tab" role="tab" id="t-lander" aria-controls="tab-lander" aria-selected="false">Lander</button>
+        <button class="tab adv-only" role="tab" id="t-mission" aria-controls="tab-mission" aria-selected="false">Mission</button>
+      </nav>
+
+      <section class="tabpane" id="tab-sites" role="tabpanel" aria-labelledby="t-sites">
+        <fieldset>
+          <legend>Surface mission</legend>
+          <div class="row">
+            <label class="field"><span>Look for landings from <span class="unit">UTC</span></span><input type="date" id="d-start"></label>
+            <label class="field"><span>Stay on the surface <span class="unit">days</span></span><input type="number" id="m-days" min="1" max="120" value="14"></label>
+          </div>
+          <div class="row">
+            <label class="field"><span>Search period</span>
+              <select id="d-days"><option value="30">30 days</option><option value="90">90 days</option><option value="180" selected>180 days</option><option value="365">1 year</option></select>
+            </label>
+            <label class="field"><span>Time step</span>
+              <select id="d-step"><option value="30">30 min</option><option value="60" selected>1 hour</option><option value="180">3 hours</option></select>
+            </label>
+          </div>
+          <p class="explain">The Moon turns once every 29.5 days, and near the pole the "seasons" change over about a year, so a few months shows the real pattern of light and dark.</p>
+        </fieldset>
+        <fieldset>
+          <legend>Mission priority</legend>
+          <div class="seg presets" role="radiogroup" aria-label="Mission priority">
+            <label><input type="radio" name="prio" value="power"><span>Power first</span></label>
+            <label><input type="radio" name="prio" value="balanced" checked><span>Balanced</span></label>
+            <label><input type="radio" name="prio" value="comms"><span>Comms first</span></label>
+          </div>
+          <label class="field"><span id="w-label">Weight: 50% sunlight · 50% Earth link</span><input type="range" id="w-slider" min="0" max="100" value="50"></label>
+          <p class="explain">A rover that drives all day needs power; a lander streaming science needs a steady link to Earth. The weight decides which matters more in the ranking.</p>
+        </fieldset>
+        <fieldset>
+          <legend>Candidate sites</legend>
+          <div id="site-list" class="site-list"></div>
+          <details class="adv">
+            <summary>Add a site anywhere on the Moon</summary>
+            <div class="inner">
+              <label class="field"><span>Name</span><input type="text" id="c-name" placeholder="e.g. Shackleton rim west"></label>
+              <div class="row">
+                <label class="field"><span>Latitude <span class="unit">°</span></span><input type="number" id="c-lat" step="any" min="-90" max="90" placeholder="-89.45"></label>
+                <label class="field"><span>Longitude <span class="unit">°E</span></span><input type="number" id="c-lon" step="any" min="-180" max="360" placeholder="222.7"></label>
+              </div>
+              <div class="actions"><button class="btn small" type="button" id="c-add">Add site</button><label class="btn small" for="c-file">Import horizon file</label><input type="file" id="c-file" accept=".json" hidden></div>
+              <p class="hint">South of 75°S, the server computes the site's terrain horizon from the LOLA map when it is installed. Elsewhere Clearway uses a smooth Moon, or a horizon file you import.</p>
+            </div>
+          </details>
+        </fieldset>
+      </section>
+
+      <section class="tabpane" id="tab-lander" role="tabpanel" aria-labelledby="t-lander" hidden>
+        <fieldset>
+          <legend>Solar array</legend>
+          <label class="field"><span>Mounting</span><select id="p-type"></select></label>
+          <div class="row three">
+            <label class="field"><span>Area <span class="unit">m²</span></span><input type="number" id="p-area" min="0.1" step="any" value="2"></label>
+            <label class="field"><span>Efficiency <span class="unit">%</span></span><input type="number" id="p-eff" min="1" max="45" step="any" value="28"></label>
+            <label class="field" id="p-az-wrap"><span>Faces <span class="unit">° az</span></span><input type="number" id="p-az" min="0" max="360" step="any" value="0"></label>
+          </div>
+          <p class="explain">Near the pole the Sun sits just above the horizon, so flat panels catch almost nothing. Polar landers use vertical panels.</p>
+        </fieldset>
+        <fieldset>
+          <legend>Battery &amp; loads</legend>
+          <div class="row">
+            <label class="field"><span>Nominal capacity <span class="unit">Wh</span></span><input type="number" id="b-cap" min="0" step="any" value="2000"></label>
+            <label class="field"><span>Usable depth <span class="unit">%</span></span><input type="number" id="b-usable" min="10" max="100" step="any" value="80"></label>
+          </div>
+          <div class="row">
+            <label class="field"><span>Charge efficiency <span class="unit">%</span></span><input type="number" id="b-ceff" min="50" max="100" step="any" value="95"></label>
+            <label class="field"><span>Discharge efficiency <span class="unit">%</span></span><input type="number" id="b-deff" min="50" max="100" step="any" value="95"></label>
+          </div>
+          <div class="row">
+            <label class="field"><span>Load in sunlight <span class="unit">W</span></span><input type="number" id="b-op" min="0" step="any" value="200"></label>
+            <label class="field" id="b-surv-wrap"><span>Fixed survival load <span class="unit">W</span></span><input type="number" id="b-surv" min="0" step="any" value="120"></label>
+          </div>
+          <p class="hint">Operating mode runs while at least half the Sun is above the skyline; survival mode runs in the dark. With the thermal model on, the survival load is the electronics below plus whatever the heaters need; the fixed survival load is used only when it is off. Usable capacity = nominal × usable depth.</p>
+        </fieldset>
+        <fieldset>
+          <legend>Thermal &amp; survival heaters</legend>
+          <label class="check"><input type="checkbox" id="t-on" checked><span>Thermal model<small>Heater power follows the lander's temperature: a short shadow is ridden out on stored heat, a long night needs full heater power</small></span></label>
+          <div class="row">
+            <label class="field"><span>Survival electronics <span class="unit">W</span></span><input type="number" id="t-elec" min="0" step="any" value="45"></label>
+            <label class="field"><span>Minimum temperature <span class="unit">°C</span></span><input type="number" id="t-min" step="any" value="-30"></label>
+          </div>
+          <div class="row">
+            <label class="field"><span>Heat capacity <span class="unit">kJ/K</span></span><input type="number" id="t-cap" min="1" step="any" value="240"></label>
+            <label class="field"><span>Radiator area <span class="unit">m²</span></span><input type="number" id="t-rad" min="0.01" step="any" value="0.9"></label>
+          </div>
+          <details class="adv">
+            <summary>More thermal inputs</summary>
+            <div class="inner">
+              <div class="row">
+                <label class="field"><span>Louvres open above <span class="unit">°C</span></span><input type="number" id="t-max" step="any" value="30"></label>
+                <label class="field"><span>Temperature at touchdown <span class="unit">°C</span></span><input type="number" id="t-start" step="any" value="20"></label>
+              </div>
+              <div class="row">
+                <label class="field"><span>Emissivity</span><input type="number" id="t-eps" min="0.01" max="1" step="any" value="0.8"></label>
+                <label class="field"><span>Sink temperature <span class="unit">K</span></span><input type="number" id="t-sink" min="0" step="any" value="100"></label>
+              </div>
+              <div class="row">
+                <label class="field"><span>Sunlit side <span class="unit">m²</span></span><input type="number" id="t-sun" min="0" step="any" value="1.5"></label>
+                <label class="field"><span>Absorptivity</span><input type="number" id="t-abs" min="0" max="1" step="any" value="0.3"></label>
+              </div>
+            </div>
+          </details>
+          <p class="hint" id="t-out"></p>
+        </fieldset>
+        <fieldset>
+          <legend>Landing safety</legend>
+          <label class="field"><span>Lander tilt limit <span class="unit">°</span></span><input type="number" id="l-tilt" min="2" max="30" step="any" value="10"></label>
+          <p class="hint">Slopes come from NASA PGDA 5 m/pixel maps within 100 m of a site where they exist, otherwise from the LOLA grid (regional slope only). The Monte Carlo counts a touchdown steeper than this limit as a failure.</p>
+        </fieldset>
+        <fieldset>
+          <legend>Direct-to-Earth link</legend>
+          <div class="row">
+            <label class="field"><span>Earth above terrain by <span class="unit">°</span></span><input type="number" id="k-margin" step="any" value="0.5"></label>
+            <label class="field"><span>DSN min. elevation <span class="unit">°</span></span><input type="number" id="k-dsn" step="any" value="10"></label>
+          </div>
+          <label class="check"><input type="checkbox" id="k-require"><span>Also require a Deep Space Network station to see the Moon<small>Goldstone, Madrid or Canberra</small></span></label>
+        </fieldset>
+        <fieldset>
+          <legend>Radio link budget &amp; relay</legend>
+          <div class="row">
+            <label class="field"><span>Band</span><select id="r-band"><option value="S">S-band (2.25 GHz)</option><option value="X" selected>X-band (8.45 GHz)</option><option value="Ka">Ka-band (32 GHz)</option></select></label>
+            <label class="field"><span>Ground dish <span class="unit">m</span></span><select id="r-dish"><option value="34" selected>DSN 34 m</option><option value="70">DSN 70 m</option><option value="12">12 m commercial</option></select></label>
+          </div>
+          <div class="row">
+            <label class="field"><span>Transmit power <span class="unit">W</span></span><input type="number" id="r-power" min="0.1" step="any" value="10"></label>
+            <label class="field"><span>Lander antenna gain <span class="unit">dBi</span></span><input type="number" id="r-gain" step="any" value="10"></label>
+          </div>
+          <label class="field"><span>Relay satellite</span><select id="r-relay"><option value="none" selected>None (direct to Earth only)</option><option value="elfo">One relay on an elliptical frozen orbit over the south pole (illustrative)</option></select></label>
+          <p class="hint" id="r-out"></p>
+          <p class="hint">Planning-grade link equation with the real Earth–Moon distance: required Eb/N0 2.5 dB, 3 dB margin, 3 dB other losses. The relay link counts when the relay is above the real skyline and can see Earth; its orbit is illustrative, not a specific mission.</p>
+        </fieldset>
+      </section>
+
+      <section class="tabpane" id="tab-mission" role="tabpanel" aria-labelledby="t-mission" hidden>
+        <fieldset>
+          <legend>Mission</legend>
+          <label class="field"><span>Mission name</span><input type="text" id="m-name" value="South Pole Lander Demo"></label>
+          <div class="row">
+            <label class="field"><span>Operator</span><input type="text" id="m-op" value="Example University Lunar Lab"></label>
+            <label class="field"><span>Country</span><input type="text" id="m-country" value="Singapore"></label>
+          </div>
+          <label class="field"><span>Landing time <span class="unit">UTC</span></span><input type="datetime-local" id="m-landing"></label>
+          <p class="hint">Set by the recommended landing, the calendar or a "Land here" button.</p>
+        </fieldset>
+        <fieldset>
+          <legend>Transfer (planning grade)</legend>
+          <div class="row">
+            <label class="field"><span>Parking orbit <span class="unit">km</span></span><input type="number" id="x-park" min="150" max="2000" value="185"></label>
+            <label class="field"><span>Coast <span class="unit">days</span></span><input type="number" id="x-tof" min="2.6" max="5.5" step="0.1" value="4.5"></label>
+          </div>
+          <div class="row">
+            <label class="field"><span>Lunar orbit <span class="unit">km</span></span><input type="number" id="x-llo" min="15" max="500" value="100"></label>
+            <label class="field"><span>Days in lunar orbit</span><input type="number" id="x-llo-days" min="0" max="30" step="0.5" value="1"></label>
+          </div>
+          <span class="section-title">Vehicle Δv budget <span class="unit">km/s</span></span>
+          <div class="row three">
+            <label class="field"><span>TLI</span><input type="number" id="v-tli" step="any" value="3.3"></label>
+            <label class="field"><span>LOI</span><input type="number" id="v-loi" step="any" value="0.95"></label>
+            <label class="field"><span>Descent</span><input type="number" id="v-desc" step="any" value="2.0"></label>
+          </div>
+        </fieldset>
+        <div class="kv" id="x-out"></div>
+        <div class="actions">
+          <button class="btn primary" type="button" id="x-apply">Update mission</button>
+          <a class="btn" id="launch-link" href="launch.html">Open launch phase</a>
+        </div>
+        <p class="hint">The launch phase reuses Clearway's Earth launch planner: launch windows, debris screening, weather and airspace.</p>
+      </section>
+      <div class="actions sticky-actions">
+        <button class="btn primary" type="button" id="run-btn">Compare sites</button>
+        <span class="hint" id="run-status"></span>
+      </div>
+    </aside>
+
+    <section class="board" id="board">
+      <div class="verdict lverdict" id="verdict">
+        <span class="eyebrow">Which landing site gives our lander the best chance of surviving its surface mission while keeping contact with Earth?</span>
+        <div class="t0">Computing Sun and Earth positions…</div>
+      </div>
+
+      <section class="card" id="card-rank">
+        <header><h2>1 · Compare the sites</h2><span class="hint" id="rank-sub"></span></header>
+        <p class="explain">Each site is scored on how often the Sun lights the solar panels and how often Earth is above the local terrain for a direct radio link, over the whole search period. Battery and landing dates come next.</p>
+        <div class="table-wrap"><table class="rank"><thead><tr>
+          <th>#</th><th>Site</th><th class="num">Sun up</th><th class="num">Longest dark</th><th class="num">Earth link</th><th class="num">Longest outage</th><th>Best landing for the stay</th><th class="num">Score</th>
+        </tr></thead><tbody id="rank-body"></tbody></table></div>
+        <div class="robust">
+          <span class="section-title">Recommended site at each mission priority (it must survive the stay)</span>
+          <div class="robust-strip" id="robust" role="img" aria-label="Winning site at each power weight"></div>
+          <div class="robust-axis"><span>Comms first</span><span>Balanced</span><span>Power first</span></div>
+        </div>
+      </section>
+
+      <section class="card" id="card-map">
+        <header><h2>South-pole map · NASA data</h2>
+          <div class="map-tools">
+            <div class="seg small" role="radiogroup" aria-label="Map layer">
+              <label><input type="radio" name="mapl" value="terrain" checked><span>Terrain</span></label>
+              <label><input type="radio" name="mapl" value="sun"><span>Average sunlight</span></label>
+            </div>
+            <label class="check inline"><input type="checkbox" id="map-psr" checked><span>Permanent shadow</span></label>
+            <button class="btn small" type="button" id="map-zin" aria-label="Zoom in">+</button>
+            <button class="btn small" type="button" id="map-zout" aria-label="Zoom out">−</button>
+            <button class="btn small" type="button" id="map-site">Selected site</button>
+            <button class="btn small" type="button" id="map-all">Whole region</button>
+          </div>
+        </header>
+        <p class="explain">This map is made from NASA data: the shading is LOLA laser-altimeter terrain, "Average sunlight" is the share of time each spot sees the Sun over an 18.6-year cycle (Mazarico et al. 2011), and the hatched patches are permanently shadowed regions — cold traps where water ice can survive. Good landing sites sit on bright ridges close to hatched craters.</p>
+        <div class="map-wrap"><canvas class="pmap" id="pmap" aria-label="South-polar map with the candidate sites"></canvas><div class="map-read mono" id="map-read"></div></div>
+        <p class="hint" id="map-hint">Click a site to select it, or click anywhere else to add a new site there.</p>
+      </section>
+
+      <section class="card" id="card-why">
+        <header><h2>2 · Why this site?</h2><span class="hint" id="why-sub"></span></header>
+        <div class="why-grid" id="why-body"></div>
+      </section>
+
+      <section class="card" id="card-site">
+        <header>
+          <div><h2 id="site-title">Site</h2><span class="hint" id="site-sub"></span></div>
+          <span class="badge" id="site-terrain"></span>
+        </header>
+        <p class="lead-text" id="site-explain"></p>
+        <div class="status-row" id="status-row" aria-live="polite"></div>
+        <div class="site-grid">
+          <div class="pano-wrap">
+            <div class="row-head"><span class="section-title">3 · Horizon view</span>
+              <span class="toggles">
+                <label class="check inline"><input type="checkbox" id="pano-geo" checked><span>Smooth-Moon horizon</span></label>
+                <label class="check inline"><input type="checkbox" id="pano-band"><span>Terrain ±0.5°</span></label>
+              </span>
+            </div>
+            <p class="explain">The grey shape is the skyline around the lander, built from NASA laser-altimeter maps. The Sun (white disc) and Earth (grey disc) are drawn at their true size; the dots trace their paths over the whole period. When a disc sinks behind the terrain it gets a red dashed outline: the lander loses power or its radio link — even if the dashed smooth-Moon line says it should be visible.</p>
+            <div class="hscroll"><canvas class="pano" id="pano" aria-label="Horizon panorama"></canvas></div>
+            <div class="scrub">
+              <button class="btn small" type="button" id="play-btn">Play</button>
+              <input type="range" id="time-slider" min="0" max="0" value="0" aria-label="Time">
+              <span class="mono t" id="time-text">—</span>
+            </div>
+            <div class="now" id="now-readout"></div>
+          </div>
+          <div class="globe-wrap">
+            <span class="section-title" id="globe-title">South pole from below</span>
+            <canvas class="mglobe" id="mglobe" aria-label="Moon map with the candidate sites"></canvas>
+            <p class="hint" id="globe-hint">Shading shows where the Sun is (smooth sphere, no terrain shadows). 0° longitude faces Earth; 90°E is to the right.</p>
+          </div>
+        </div>
+        <div class="row-head"><span class="section-title">Timeline — sunlight, Earth link, power and battery move together</span>
+          <div class="seg small" role="radiogroup" aria-label="Timeline range">
+            <label><input type="radio" name="tlr" value="stay" checked><span>Surface stay</span></label>
+            <label><input type="radio" name="tlr" value="all"><span>Whole period</span></label>
+          </div>
+        </div>
+        <canvas class="tline" id="tline" aria-label="Sunlight, Earth link, power and battery over time"></canvas>
+        <p class="hint">Earth link: solid = terrain-clear line of sight, hatched = Earth above a smooth horizon but blocked by terrain. Power: grey area = array output, white line = load, hatched band = heater share of the load. Battery is usable charge (red = flat). Temperature: the lander's thermal mass; the dashed line is the heater set-point. In "Surface stay" the battery and thermal state start fresh at touchdown.</p>
+        <div class="tiers" id="tiers"></div>
+        <div class="safety" id="safety"></div>
+      </section>
+
+      <section class="card" id="card-cal">
+        <header><h2>4 · When to land</h2><span class="hint" id="cal-sub"></span></header>
+        <p class="explain">Each square is a possible landing day at this site. Green means the lander survives the whole stay (brighter = better score); red means the battery runs flat at some point; grey means the Sun or Earth is behind the terrain all day, so landing is unsafe. The star is the best day.</p>
+        <div class="cal-wrap"><canvas class="cal" id="cal" aria-label="Landing calendar"></canvas></div>
+        <div class="legend-row">
+          <span><i class="sw go"></i>survives the stay</span><span><i class="sw nogo"></i>battery runs flat</span><span><i class="sw grey"></i>no safe touchdown</span><span><i class="sw hatch"></i>too soon / past the period</span><span>★ best</span>
+        </div>
+        <div class="cal-detail" id="cal-detail"></div>
+        <div class="windows">
+          <header><span class="section-title">Best landing windows</span><span class="hint" id="win-sub"></span></header>
+          <div class="table-wrap"><table><thead><tr><th>Landing (UTC)</th><th class="num">Sun up</th><th class="num">Earth link</th><th class="num">Longest dark</th><th class="num">Min. battery</th><th class="num">Margin</th><th>Limiting factor</th><th class="num">Score</th><th></th></tr></thead><tbody id="win-body"></tbody></table></div>
+        </div>
+      </section>
+
+      <section class="card" id="card-periods">
+        <header><h2>Sunlit periods &amp; Earth-link windows</h2>
+          <div class="seg small" role="radiogroup" aria-label="Period type">
+            <label><input type="radio" name="per" value="sun" checked><span>Sunlit</span></label>
+            <label><input type="radio" name="per" value="dark"><span>Dark</span></label>
+            <label><input type="radio" name="per" value="comms"><span>Link up</span></label>
+            <label><input type="radio" name="per" value="outage"><span>Outages</span></label>
+          </div>
+        </header>
+        <p class="hint" id="per-sub"></p>
+        <div class="table-wrap tall"><table><thead><tr><th>Starts (UTC)</th><th>Ends (UTC)</th><th class="num">Duration</th><th></th></tr></thead><tbody id="per-body"></tbody></table></div>
+        <div class="actions"><button class="btn small" type="button" id="per-csv">Download all periods (CSV)</button></div>
+      </section>
+
+      <section class="card" id="card-trade">
+        <header><h2>5 · Mission trade-off explorer</h2><span class="hint">Same landing time, same stay, side by side</span></header>
+        <p class="explain">Pick two or more sites, a landing time and how long the lander must survive. Change the stay or the priority and watch whether the recommendation flips — and why.</p>
+        <div class="trade-controls">
+          <div class="chips" id="tr-sites" aria-label="Sites to compare"></div>
+          <div class="row three">
+            <label class="field"><span>Landing <span class="unit">UTC</span></span><input type="datetime-local" id="tr-landing"></label>
+            <label class="field"><span>Stay <span class="unit">days</span></span><input type="number" id="tr-days" min="1" max="120" value="14"></label>
+            <label class="field"><span>Priority</span><select id="tr-prio"><option value="power">Power first</option><option value="balanced" selected>Balanced</option><option value="comms">Comms first</option></select></label>
+          </div>
+        </div>
+        <div class="table-wrap"><table class="trade" id="tr-table"></table></div>
+        <div class="trade-out" id="tr-out"></div>
+      </section>
+
+      <section class="card" id="card-mc">
+        <header><h2>6 · Survival under uncertainty</h2><span class="badge" id="mc-badge">Monte Carlo</span></header>
+        <p class="explain">Real missions never land exactly where and when planned, and real hardware never matches the spec sheet. Here every site's planned landing is replayed hundreds of times with the uncertain inputs drawn at random. A site that survives in nearly every replay is a robust choice; one that only just survives is fragile.</p>
+        <div class="mc-controls">
+          <label class="field"><span>Scenarios per site</span><select id="mc-n"><option value="100">100</option><option value="200" selected>200</option><option value="500">500</option><option value="1000">1000</option></select></label>
+          <label class="field"><span>Landing time slip <span class="unit">± h</span></span><input type="number" id="mc-slip" min="0" max="240" step="any" value="12"></label>
+          <label class="field"><span>Skyline error <span class="unit">σ °</span></span><input type="number" id="mc-sky" min="0" max="5" step="any" value="0.25"></label>
+          <label class="field"><span>Seed</span><input type="number" id="mc-seed" min="1" step="1" value="1"></label>
+          <details class="adv mc-more">
+            <summary>More uncertainty inputs</summary>
+            <div class="inner row three">
+              <label class="field"><span>Panel efficiency <span class="unit">σ %</span></span><input type="number" id="mc-panel" min="0" max="50" step="any" value="5"></label>
+              <label class="field"><span>Loads <span class="unit">σ %</span></span><input type="number" id="mc-load" min="0" max="50" step="any" value="10"></label>
+              <label class="field"><span>Survival electronics <span class="unit">σ %</span></span><input type="number" id="mc-surv" min="0" max="50" step="any" value="15"></label>
+              <label class="field"><span>Battery fade <span class="unit">up to %</span></span><input type="number" id="mc-fade" min="0" max="60" step="any" value="15"></label>
+              <label class="field"><span>Radiator area <span class="unit">σ %</span></span><input type="number" id="mc-rad" min="0" max="50" step="any" value="10"></label>
+              <label class="check"><input type="checkbox" id="mc-pos" checked><span>Vary the touchdown point<small>Uses horizons computed 100 m around each site</small></span></label>
+            </div>
+          </details>
+          <div class="actions"><button class="btn small primary" type="button" id="mc-run">Run Monte Carlo</button><span class="hint" id="mc-status"></span></div>
+        </div>
+        <div class="table-wrap"><table class="mc"><thead><tr><th>Site</th><th>Planned landing</th><th class="num">Survives</th><th>95% interval</th><th>Failures: touchdown · slope · battery</th><th class="num">Battery low (worst 10%)</th></tr></thead><tbody id="mc-body"><tr><td colspan="6" class="hint">Runs after the comparison.</td></tr></tbody></table></div>
+        <p class="hint" id="mc-note"></p>
+      </section>
+
+      <section class="card" id="card-heat">
+        <header><h2>Day by day, every site</h2>
+          <div class="seg small" role="radiogroup" aria-label="Heatmap metric">
+            <label><input type="radio" name="hm" value="sun" checked><span>Sunlight</span></label>
+            <label><input type="radio" name="hm" value="comms"><span>Earth link</span></label>
+          </div>
+        </header>
+        <p class="explain">Brighter squares mean more of that day with the Sun up (or Earth in view). Click a square to jump to that site and day.</p>
+        <div class="hscroll"><canvas class="heat" id="heat" aria-label="Sites by date heatmap"></canvas></div>
+      </section>
+
+      <section class="card" id="card-conf">
+        <header><h2>7 · How much to trust this</h2><span class="badge" id="conf-badge"></span></header>
+        <div class="conf-grid" id="conf-grid"></div>
+        <span class="section-title">Stress tests — does the recommendation change?</span>
+        <div class="table-wrap"><table><thead><tr><th>Change</th><th>What it represents</th><th>Winner</th><th class="num">Lead</th><th>Result</th></tr></thead><tbody id="stress-body"><tr><td colspan="5" class="hint">Running…</td></tr></tbody></table></div>
+        <div id="terrain-effect"></div>
+        <div class="xcheck" id="xcheck"></div>
+      </section>
+
+      <section class="card" id="card-verify">
+        <header><h2>Verification</h2><span class="hint">Every number is checked automatically</span></header>
+        <div class="verify-grid" id="val-body"></div>
+        <div class="actions verify">
+          <button class="btn small" type="button" id="verify-btn">Check this site live against JPL Horizons</button>
+          <span class="hint" id="verify-out">Compares this site's Sun and Earth positions with NASA JPL's ephemeris service.</span>
+        </div>
+      </section>
+
+      <section class="card">
+        <header><h2>Export</h2></header>
+        <div class="actions">
+          <button class="btn small primary" type="button" data-export="brief">Site &amp; Mission Brief (PDF)</button>
+          <button class="btn small" type="button" data-export="csv">Site time series (CSV)</button>
+          <button class="btn small" type="button" data-export="json">Comparison (JSON)</button>
+          <button class="btn small" type="button" data-export="horizon">Horizon mask (JSON)</button>
+        </div>
+      </section>
+    </section>
+  </main>
+</div>
+
+<dialog id="lineage-dlg" class="about-dlg" aria-labelledby="lineage-title">
+  <form method="dialog" class="dlg">
+    <header class="dlg-head"><h2 id="lineage-title">About Clearway</h2><button class="icon-btn" value="close" aria-label="Close">×</button></header>
+    <nav class="about-tabs" role="tablist" aria-label="About Clearway">
+      <button class="tab" type="button" role="tab" id="ab-t-founder" aria-controls="ab-founder" aria-selected="true">Founder</button>
+      <button class="tab" type="button" role="tab" id="ab-t-data" aria-controls="ab-data" aria-selected="false">Data sources</button>
+      <button class="tab" type="button" role="tab" id="ab-t-how" aria-controls="ab-how" aria-selected="false">How it works</button>
+      <button class="tab" type="button" role="tab" id="ab-t-ch3" aria-controls="ab-ch3" aria-selected="false">Chandrayaan-3</button>
+    </nav>
+    <div class="dlg-body about-body">
+      <section class="about-pane" id="ab-founder" role="tabpanel" aria-labelledby="ab-t-founder"></section>
+      <section class="about-pane" id="ab-data" role="tabpanel" aria-labelledby="ab-t-data" hidden></section>
+      <section class="about-pane" id="ab-how" role="tabpanel" aria-labelledby="ab-t-how" hidden><div id="lineage-body"></div></section>
+      <section class="about-pane" id="ab-ch3" role="tabpanel" aria-labelledby="ab-t-ch3" hidden></section>
+    </div>
+  </form>
+</dialog>
+<dialog id="phase-dlg" aria-labelledby="phase-title">
+  <form method="dialog" class="dlg">
+    <header class="dlg-head"><h2 id="phase-title">Phase</h2><button class="icon-btn" value="close" aria-label="Close">×</button></header>
+    <div id="phase-body" class="dlg-body"></div>
+  </form>
+</dialog>
+<dialog id="game-dlg" aria-labelledby="game-title">
+  <div class="dlg game">
+    <header class="dlg-head"><h2 id="game-title">Landing Director Challenge</h2><button class="icon-btn" type="button" id="game-close" aria-label="Close">×</button></header>
+    <div id="game-body" class="dlg-body"></div>
+  </div>
+</dialog>
+<div class="tour" id="tour" hidden>
+  <div class="tour-card" role="dialog" aria-labelledby="tour-title" aria-live="polite">
+    <span class="eyebrow" id="tour-step"></span>
+    <h3 id="tour-title"></h3>
+    <p id="tour-text"></p>
+    <div class="actions"><button class="btn small" type="button" id="tour-prev">Back</button><button class="btn small primary" type="button" id="tour-next">Next</button><button class="btn small ghost" type="button" id="tour-end">End tour</button></div>
+  </div>
+</div>
+<div class="tip" id="tip" hidden></div>
+<div class="toast" id="toast" role="status" hidden></div>
+<script type="module" src="js/lunar-main.js"></script>
+</body>
+</html>

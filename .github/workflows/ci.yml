@@ -1,0 +1,37 @@
+name: CI
+on:
+  push:
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install optional test dependencies
+        run: pip install pytest sgp4
+      - name: Fetch browser vendor files (enables the SGP4 cross-check)
+        run: python server.py --fetch-vendor || true
+      - name: Build real NASA terrain (LOLA + PGDA illumination maps; enables the real-data tests)
+        run: python server.py --build-terrain || true
+      - name: JavaScript tests (ephemeris vs JPL Horizons, analysis, thermal, Monte Carlo, cross-check)
+        run: node --test tests/core.test.mjs tests/lunar.test.mjs tests/v4.test.mjs tests/v5.test.mjs tests/v6.test.mjs
+      - name: Python tests (terrain horizons, GeoTIFF/PGDA pipeline, server, reference cross-checks)
+        run: pytest -v tests
+      - name: Validation report (feeds the app's Verification card)
+        run: python tools/validation_report.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: validation-report
+          path: |
+            web/data/validation.json
+            web/data/polar-map.json
+      - name: Syntax check
+        run: |
+          for f in web/js/*.js web/js/lunar/*.js; do node --check "$f"; done
+          python -m py_compile server.py tools/*.py firmware/*.py
